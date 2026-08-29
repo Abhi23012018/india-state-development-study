@@ -114,6 +114,11 @@ from Jolad & Singh's digitised Census collection and
 The original Census indicators remain attributed to the Office of the Registrar
 General & Census Commissioner, India.
 
+For a practical web artifact, boundary coordinates are deterministically rounded
+to four decimal degrees (roughly 11 metres at the equator). This reduces file
+size while retaining far more detail than is visible at state-level map scale;
+feature identities and 2011 topology are not reclassified.
+
 State labels are canonicalized before joining, including Orissa/Odisha,
 Pondicherry/Puducherry, NCT of Delhi/Delhi, Jammu & Kashmir/Jammu and Kashmir,
 and Andaman `&`/`and` Nicobar Islands. The geometry contains all 35 Census 2011
