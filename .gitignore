@@ -6,10 +6,11 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 data/raw/*.csv
+data/raw/*.geojson
 data/processed/*.csv
 outputs/*.png
 outputs/*.txt
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !outputs/.gitkeep
-
+!outputs/india_state_choropleth.png

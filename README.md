@@ -20,7 +20,8 @@ No synthetic or randomly generated observations are used.
 ├── src/
 │   ├── data_pipeline.py        # Download, validation, harmonization, merge
 │   ├── analytics.py            # Pearson/Spearman and robust OLS
-│   └── visualization.py        # Heatmap and population bubble regression plot
+│   ├── visualization.py        # Heatmap and population bubble regression plot
+│   └── map_visualization.py    # Interactive Census 2011 state choropleth
 ├── tests/
 │   ├── test_pipeline.py
 │   └── test_analytics.py
@@ -69,6 +70,7 @@ From the repository root:
 python -m src.data_pipeline
 python -m src.analytics
 python -m src.visualization
+python -m src.map_visualization
 pytest -q
 ```
 
@@ -83,6 +85,53 @@ Generated artifacts:
 - `outputs/ols_summary.txt` and `outputs/ols_coefficients.csv`
 - `outputs/correlation_heatmap.png`
 - `outputs/literacy_income_bubble.png`
+- `outputs/india_state_choropleth.html`
+- `outputs/india_state_choropleth.png` when Kaleido/Chrome is available
+
+## Interactive India state map
+
+Open [the generated interactive choropleth](outputs/india_state_choropleth.html)
+to switch among Census 2011 literacy, population density, total population, and
+2011–12 per-capita income. Hovering a state reports its name and the selected
+metric. The map is responsive and retains a neutral base layer so territories
+without a matched project observation remain visible rather than disappearing.
+
+Generate it from the repository root:
+
+```bash
+python -m src.data_pipeline
+python -m src.map_visualization
+```
+
+`src/map_visualization.py` reads only
+`data/processed/india_state_development.csv`; it does not generate or substitute
+synthetic indicator values. The script downloads and caches the versioned
+[Census 2011 state GeoJSON](https://github.com/saketlab/censusindia/blob/master/inst/extdata/india-census-2011-states.geojson)
+from the MIT-licensed [`saketlab/censusindia`](https://github.com/saketlab/censusindia)
+repository. That project documents the boundaries as collated through BharatViz
+from Jolad & Singh's digitised Census collection and
+[`ramSeraph/indian_admin_boundaries`](https://github.com/ramSeraph/indian_admin_boundaries).
+The original Census indicators remain attributed to the Office of the Registrar
+General & Census Commissioner, India.
+
+State labels are canonicalized before joining, including Orissa/Odisha,
+Pondicherry/Puducherry, NCT of Delhi/Delhi, Jammu & Kashmir/Jammu and Kashmir,
+and Andaman `&`/`and` Nicobar Islands. The geometry contains all 35 Census 2011
+states and union territories. The processed table currently supplies 32 matches;
+Dadra & Nagar Haveli, Daman & Diu, and Lakshadweep are displayed as no-data areas.
+
+### Boundary limitations
+
+The map deliberately uses 2011 administrative definitions. Andhra Pradesh is
+shown undivided, and Jammu & Kashmir includes the area now administered as
+Ladakh. Telangana (formed in 2014) and Ladakh (formed in 2019) are not fabricated
+as independent 2011 observations. This makes the map historically consistent
+with the project's population and literacy measures, but unsuitable as a map of
+current administrative units.
+
+Static PNG export is best-effort because Plotly uses Kaleido and may require a
+compatible Chrome installation. Failure to export PNG does not prevent the
+standalone interactive HTML from being created.
 
 ## Data engineering behavior
 
