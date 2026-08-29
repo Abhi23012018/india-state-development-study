@@ -72,6 +72,18 @@ METRICS: Final = {
 }
 
 
+def _round_coordinates(value: Any, precision: int = 4) -> Any:
+    """Reduce web-map payload size without changing feature topology."""
+
+    if isinstance(value, float):
+        return round(value, precision)
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            value[index] = _round_coordinates(item, precision)
+        return value
+    return value
+
+
 def canonicalize_state(value: object) -> str:
     """Normalize historical spellings and ampersand variants for joining."""
 
@@ -111,6 +123,8 @@ def load_geojson(path: Path) -> dict[str, Any]:
             raise ValueError("Every GeoJSON feature must have a state name")
         properties["state_key"] = canonicalize_state(source_name)
         properties["display_name"] = properties["state_key"]
+        geometry = feature.get("geometry") or {}
+        geometry["coordinates"] = _round_coordinates(geometry.get("coordinates", []))
     keys = [feature["properties"]["state_key"] for feature in features]
     if len(keys) != len(set(keys)):
         raise ValueError("Canonical GeoJSON state names are not unique")
@@ -330,4 +344,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
