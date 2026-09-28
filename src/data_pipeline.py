@@ -16,7 +16,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
-import numpy as np
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
@@ -133,7 +132,11 @@ def load_census(path: Path) -> pd.DataFrame:
     )
     for column in ["Population", "Literacy Rate", "Area Sq Km", "Population Density"]:
         out[column] = _number(out[column])
-    return out.drop_duplicates("State")
+    duplicates = out["State"].duplicated(keep=False)
+    if duplicates.any():
+        names = sorted(out.loc[duplicates, "State"].unique())
+        raise ValueError(f"Source has duplicate canonical state keys: {names}")
+    return out
 
 
 def load_income(path: Path) -> pd.DataFrame:
@@ -209,8 +212,12 @@ def build_dataset(raw_dir: Path = RAW_DIR, processed_dir: Path = PROCESSED_DIR, 
     income = load_income(paths["income"])
     gsdp = load_gsdp(paths["gsdp"])
 
-    merged = census.merge(income, on="State", how="inner", validate="one_to_one")
-    merged = merged.merge(gsdp, on="State", how="inner", validate="one_to_one")
+    merged = census.merge(income, on="State", how="left", validate="one_to_one", indicator="income_match")
+    merged = merged.merge(gsdp, on="State", how="left", validate="one_to_one", indicator="gsdp_match")
+    coverage = merged.loc[(merged["income_match"] != "both") | (merged["gsdp_match"] != "both"), ["State", "income_match", "gsdp_match"]]
+    if not coverage.empty:
+        LOGGER.warning("Source coverage gaps: %s", coverage.to_dict("records"))
+    merged = merged.drop(columns=["income_match", "gsdp_match"])
     merged["Reference Year"] = "2011-12"
     merged = impute_historical_cells(merged)
     # One crore rupees = 10,000,000 rupees. This is gross output per Census resident.
@@ -223,6 +230,8 @@ def build_dataset(raw_dir: Path = RAW_DIR, processed_dir: Path = PROCESSED_DIR, 
         raise ValueError("Duplicate canonical state names remain after merge")
     if not merged["Literacy Rate"].between(0, 100).all():
         raise ValueError("Literacy rates must lie between 0 and 100")
+    if merged[["Population", "Population Density", "State GSDP", "Per Capita Income"]].isna().any().any():
+        raise ValueError("Required measures contain missing values after source merge")
     if (merged[["Population", "Population Density", "State GSDP", "Per Capita Income"]] <= 0).any().any():
         raise ValueError("Core demographic/economic measures must be positive")
 
